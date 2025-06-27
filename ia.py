@@ -1,5 +1,6 @@
 import ollama
 
+#pip install ollama 
 def ask_deepseek(question, model="deepseek-r1:1.5B"):
     response = ollama.generate(
         model=model,
