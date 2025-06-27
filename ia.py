@@ -8,7 +8,7 @@ def ask_deepseek(question, model="deepseek-r1:1.5B"):
     )
     return response['response']
 
-pergunta = "Explique teoria da computação e suas aplicações práticas."
+pergunta = " "
 resposta = ask_deepseek(pergunta)
 
 print("Pergunta:\n", pergunta)
