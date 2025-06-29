@@ -13,7 +13,7 @@ def clean_text(text: str) -> str:
     text = re.sub(r'\s+', ' ', text)
     return text.strip()
 
-def extract_questions(text: str) -> list:
+def extract_questions(text: str) -> list[str]:
     """Extrai perguntas que começam com número seguido de ponto (1., 2., etc.)"""
     questions = re.findall(r'(\d+\.\s.+?)(?=\d+\.|$)', text)
     return questions
@@ -38,7 +38,7 @@ def get_answer(question: str) -> str:
     )
     
     response = ollama.generate(
-        model="phi",
+        model="phi3",
         prompt=prompt,
         options={'temperature': 0, 'num_ctx': 1024}
     )

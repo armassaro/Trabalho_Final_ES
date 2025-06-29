@@ -9,7 +9,7 @@ from pathlib import Path
 from PyPDF2 import PdfReader   # pip install PyPDF2
 
 # 1) Informe o nome (ou caminho) do PDF
-PDF_PATH = Path("Teste2.pdf")      # Se estiver na mesma pasta do .py basta o nome
+PDF_PATH = Path("Teste1.pdf")      # Se estiver na mesma pasta do .py basta o nome
 
 # ------------------------------------------------------------------------
 def extrair_texto(pdf: Path) -> str:
