@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict
 
-#########--- Factory Method show de bola---########
+#######--- FactoryMethod das funções estatísticas---########
 
 class RelatorioFactory(ABC):
     @abstractmethod
@@ -14,7 +14,6 @@ class RelatorioFactoryConcreta(RelatorioFactory):
             "notas_totais": gerar_notas_totais,
             "taxa_acertos_questao": gerar_taxa_acertos_por_questao,
             "taxa_acertos_tema": gerar_taxa_acertos_por_tema,
-            "media_sala": gerar_media_sala,
             "taxa_aprovacao": gerar_taxa_aprovacao
         }
 
@@ -24,7 +23,7 @@ class RelatorioFactoryConcreta(RelatorioFactory):
             raise ValueError(f"Tipo de relatório '{tipo}' inválido.")
 
 
-########--- Cálculos de Estatística ---#########
+#######--- Funções estatísticas---########
 
 def gerar_notas_totais(matriz_notas: List[List[float]]) -> List[float]:
     return [sum(aluno) for aluno in matriz_notas]
@@ -32,10 +31,11 @@ def gerar_notas_totais(matriz_notas: List[List[float]]) -> List[float]:
 def gerar_taxa_acertos_por_questao(matriz_notas: List[List[float]]) -> List[float]:
     num_alunos = len(matriz_notas)
     num_questoes = len(matriz_notas[0])
-    return [
+    taxa_questao = [
         round(sum(matriz_notas[i][j] for i in range(num_alunos)) / num_alunos * 100, 2)
         for j in range(num_questoes)
     ]
+    return num_questoes, taxa_questao
 
 def gerar_taxa_acertos_por_tema(matriz_notas: List[List[float]], matriz_tags: List[List[str]]) -> Dict[str, float]:
     tema_acertos = {}
@@ -52,55 +52,11 @@ def gerar_taxa_acertos_por_tema(matriz_notas: List[List[float]], matriz_tags: Li
     taxa = {tema: round(tema_acertos[tema] / tema_total[tema] * 100, 2) for tema in tema_acertos}
     return dict(sorted(taxa.items(), key=lambda item: item[1]))
 
-def gerar_media_sala(matriz_notas: List[List[float]]) -> float:
-    notas_totais = gerar_notas_totais(matriz_notas)
-    return round(sum(notas_totais) / len(notas_totais), 2)
-
 def gerar_taxa_aprovacao(matriz_notas: List[List[float]], nota_aprovacao: float) -> Dict[str, float]:
     notas_totais = gerar_notas_totais(matriz_notas)
     num_alunos = len(notas_totais)
     acima = sum(1 for n in notas_totais if n >= nota_aprovacao)
     abaixo = num_alunos - acima
 
-    return {
-        "aprovados (%)": round(acima / num_alunos * 100, 2),
-        "reprovados (%)": round(abaixo / num_alunos * 100, 2)
-    }
+    return acima, abaixo
 
-#######--- Exemplo ---########
-
-if __name__ == "__main__":
-    # Matriz de notas
-    notas = [
-        [1, 0, 1, 1],
-        [1, 1, 0, 1],
-        [0, 1, 0, 0],
-        [1, 1, 1, 1]
-    ]
-
-    # Matriz de tags
-    tags = [
-        ["Matemática"],
-        ["Matemática", "Geometria"],
-        ["Português"],
-        ["Matemática"]
-    ]
-
-    nota_aprovacao = 3
-
-    factory = RelatorioFactoryConcreta()
-
-    print("Notas totais por aluno:")
-    print(factory.criar_relatorio("notas_totais")(notas))
-
-    print("\nTaxa de acertos por questão (%):")
-    print(factory.criar_relatorio("taxa_acertos_questao")(notas))
-
-    print("\nTaxa de acertos por tema (%), ordenado crescente:")
-    print(factory.criar_relatorio("taxa_acertos_tema")(notas, tags))
-
-    print("\nMédia da sala:")
-    print(factory.criar_relatorio("media_sala")(notas))
-
-    print("\nTaxa de aprovação e reprovação (%):")
-    print(factory.criar_relatorio("taxa_aprovacao")(notas, nota_aprovacao))
