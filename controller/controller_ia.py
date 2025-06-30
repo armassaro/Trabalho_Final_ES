@@ -1,68 +1,61 @@
+# Trabalho_Final_ES/controller/controller_ia.py
 import ollama
 import json
 
-class ControllerIA:
+class controller_ia:
     def __init__(self, model: str = "phi3:mini", temperature: float = 0.1, num_ctx: int = 2048):
         self.model = model
         self.temperature = temperature
         self.num_ctx = num_ctx
 
-    def gerar_gabarito_dissertativo(self, pergunta: str) -> str:
-        """
-        Gera um gabarito detalhado para uma pergunta dissertativa.
+    def gerarRespostaGabarito(self, pergunta: str) -> str:
+        # Gera uma resposta breve e direta para uma pergunta, ideal para um gabarito.
+        print(f"🧠 IA: Gerando resposta para o gabarito da pergunta: '{pergunta[:40]}...'")
 
-        Args:
-            pergunta (str): A pergunta dissertativa para a qual o gabarito será criado.
-
-        Returns:
-            str: O gabarito detalhado gerado pela IA.
-        """
-        print(f"🧠 Gerando gabarito para a pergunta: '{pergunta}'...")
-
-        # O prompt do sistema define o "papel" da IA
+        # Prompt do sistema para gerar respostas de gabarito
         prompt_sistema = """
-        Você é um professor especialista e um assistente de avaliação.
-        Sua tarefa é criar um gabarito detalhado e bem estruturado para a pergunta dissertativa fornecida.
-        O gabarito deve destacar os pontos-chave, conceitos essenciais, argumentos esperados e, se aplicável,
-        exemplos que constituiriam uma resposta completa e de alta qualidade.
-        Este gabarito será usado como base para avaliar as respostas dos alunos de forma objetiva.
+        Você é um assistente especialista em criar gabaritos.
+        Sua tarefa é fornecer uma resposta correta, breve e direta para a pergunta enviada.
+        - Se for uma questão de múltipla escolha, retorne APENAS a letra da alternativa correta (ex: A).
+        - Se for uma questão discursiva, forneça uma resposta ideal e concisa.
+        Não inclua frases como "A resposta é". Seja direto.
         """
-
         try:
+            # CORREÇÃO: 'temperature' movido para dentro de 'options'
             response = ollama.chat(
                 model=self.model,
-                temperature=self.temperature,
-                options={'num_ctx': self.num_ctx},
+                options={
+                    'num_ctx': self.num_ctx,
+                    'temperature': self.temperature
+                },
                 messages=[
                     {'role': 'system', 'content': prompt_sistema},
-                    {'role': 'user', 'content': f"Gere o gabarito para a seguinte pergunta: {pergunta}"}
+                    {'role': 'user', 'content': pergunta}
                 ]
             )
-            return response['message']['content']
+            return response['message']['content'].strip()
         except Exception as e:
             print(f"❌ Ocorreu um erro ao chamar a API do Ollama: {e}")
-            return "Erro ao gerar o gabarito."
+            return "Erro ao gerar resposta."
 
     def avaliar_resposta_aluno(self, pergunta: str, gabarito: str, resposta_aluno: str, nota_maxima: int = 10) -> dict:
-
-        # Prompt do sistema mais complexo para a tarefa de avaliação
+        # Avalia a resposta de um aluno, comparando-a com o gabarito oficial e atribuindo uma nota.
         prompt_sistema = f"""
         Você é um assistente de avaliação rigoroso, justo e objetivo.
         Sua tarefa é analisar a resposta de um aluno, compará-la com o gabarito oficial e atribuir uma nota de 0 a {nota_maxima}.
+        Siga estas etapas:
+        1. Entenda a 'Pergunta Original'.
+        2. Estude o 'Gabarito (Resposta Ideal)'.
+        3. Analise a 'Resposta do Aluno'.
+        4. Compare a 'Resposta do Aluno' com o 'Gabarito'.
+        5. Atribua uma nota numérica que reflita o quão próxima a resposta do aluno está do gabarito.
+        6. Escreva uma 'justificativa' clara e construtiva.
+        7. Retorne sua avaliação estritamente no formato JSON, com as chaves "nota" (um número) e "justificativa" (um texto).
 
-        Siga estas etapas com atenção:
-        1. Leia a 'Pergunta Original' para entender o que foi solicitado.
-        2. Estude o 'Gabarito (Resposta Ideal)' para saber quais são os critérios de uma resposta perfeita.
-        3. Analise cuidadosamente a 'Resposta do Aluno'.
-        4. Compare a 'Resposta do Aluno' com o 'Gabarito'. Identifique os pontos-chave que o aluno acertou, os que abordou parcialmente e os que omitiu.
-        5. Com base na sua análise comparativa, atribua uma nota numérica. A nota deve refletir o quão próxima a resposta do aluno está do gabarito.
-        6. Escreva uma 'justificativa' clara e construtiva, explicando o porquê da nota atribuída. Mencione os pontos fortes e as áreas que precisam de melhoria na resposta do aluno.
-        7. Retorne sua avaliação estritamente no formato JSON, com as chaves "nota" (um número) e "justificativa" (um texto). Não adicione nenhum texto antes ou depois do JSON.
-
-        Exemplo de saída esperada:
+        Exemplo de saída:
         {{
           "nota": 8.5,
-          "justificativa": "O aluno demonstrou um bom entendimento sobre o ciclo da água, descrevendo corretamente a evaporação e a precipitação. No entanto, não mencionou a importância da condensação e da transpiração das plantas, que são pontos relevantes do gabarito. A nota reflete a cobertura parcial dos tópicos essenciais."
+          "justificativa": "O aluno demonstrou um bom entendimento sobre o ciclo da água. No entanto, não mencionou a condensação. A nota reflete a cobertura parcial dos tópicos."
         }}
         """
 
@@ -79,30 +72,30 @@ class ControllerIA:
         ---
         """
 
+        print(f"🧠 IA: Avaliando resposta para a pergunta: '{pergunta[:40]}...'")
         try:
+            # CORREÇÃO: 'temperature' movido para dentro de 'options'
             response = ollama.chat(
                 model=self.model,
-                temperature=self.temperature,
-                format="json", # Instruindo o Ollama a forçar a saída em JSON
-                options={'num_ctx': self.num_ctx},
+                format="json",
+                options={
+                    'num_ctx': self.num_ctx,
+                    'temperature': self.temperature
+                },
                 messages=[
                     {'role': 'system', 'content': prompt_sistema},
                     {'role': 'user', 'content': prompt_usuario}
                 ]
             )
-
-            # O conteúdo da mensagem já deve ser um objeto JSON se format="json" funcionar
-            # A biblioteca Ollama lida com o parse do JSON automaticamente nesse caso.
             evaluation_data = json.loads(response['message']['content'])
-
-            # Validação simples do dicionário retornado
+            
             if 'nota' in evaluation_data and 'justificativa' in evaluation_data:
                 return evaluation_data
             else:
                 raise ValueError("A resposta da IA não contém as chaves 'nota' e 'justificativa'.")
 
         except json.JSONDecodeError:
-            return {"nota": 0, "justificativa": "Erro: A IA retornou um formato inválido que não pôde ser processado como JSON."}
+            return {"nota": 0, "justificativa": "Erro: A IA retornou um formato JSON inválido."}
         except Exception as e:
             print(f"❌ Ocorreu um erro ao chamar a API do Ollama: {e}")
             return {"nota": 0, "justificativa": f"Erro ao avaliar a resposta: {e}"}

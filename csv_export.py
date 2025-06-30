@@ -35,5 +35,5 @@ class csv_export:
             self.writer.writerow([tema, taxa])
         
     def getConteudoCsv(self) -> str:
-        """Retorna o conteúdo CSV final como uma string."""
+        # Retorna o conteúdo CSV final como uma string
         return self.string_buffer.getvalue()

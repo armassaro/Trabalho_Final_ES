@@ -6,7 +6,7 @@ import re
 PDF_PATH = Path("teste4.pdf")
 
 def clean_text(text: str) -> str:
-    """Remove TODAS as quebras de linha e espaços extras"""
+    # Remove TODAS as quebras de linha e espaços extras# 
     # Substitui todas as quebras de linha por espaço
     text = text.replace('\n', ' ')
     # Remove múltiplos espaços
@@ -14,12 +14,12 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 def extract_questions(text: str) -> list[str]:
-    """Extrai perguntas que começam com número seguido de ponto (1., 2., etc.)"""
+    # Extrai perguntas que começam com número seguido de ponto (1., 2., etc.)# 
     questions = re.findall(r'(\d+\.\s.+?)(?=\d+\.|$)', text)
     return questions
 
 def extract_pdf_text(pdf: Path) -> str:
-    """Extrai todo o texto do PDF de uma vez"""
+    # Extrai todo o texto do PDF de uma vez# 
     try:
         reader = PdfReader(str(pdf))
         full_text = ' '.join(page.extract_text() or '' for page in reader.pages)
@@ -29,7 +29,7 @@ def extract_pdf_text(pdf: Path) -> str:
         return ""
 
 def get_answer(question: str) -> str:
-    """Obtém resposta para uma pergunta específica"""
+    # Obtém resposta para uma pergunta específica# 
     prompt = (
         f"Responda EXTREMAMENTE BREVE, apenas o essencial:\n"
         f"Pergunta: {question}\n"

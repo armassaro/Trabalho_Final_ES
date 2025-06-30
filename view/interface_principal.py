@@ -1,3 +1,4 @@
+# Trabalho_Final_ES/view/interface_principal.py
 import tkinter as tk
 from tkinter import filedialog, scrolledtext
 import os
@@ -11,15 +12,23 @@ class InterfacePrincipal:
         self.label_arquivo_gabarito = None
         self.log_status_widget = None
 
+        # Widgets para a tela de resultados que precisam ser atualizados
+        self.aluno_label = None
+        self.questao_label = None
+        self.enunciado_text = None
+        self.resp_aluno_text = None
+        self.resp_ia_text = None
+        self.valor_q_label = None
+        self.nota_total_label = None
+        self.nota_entry = None
+
     def limparJanela(self):
-        """Remove todos os widgets da janela root."""
+        # Remove todos os widgets da janela root.
         for widget in self.root.winfo_children():
             widget.destroy()
 
     def mostraUpload(self):
-        """
-        Cria a tela de envio de arquivos, com conteúdo dos frames centralizado.
-        """
+        # Cria a tela de envio de arquivos, com conteúdo dos frames centralizado.
         self.limparJanela()
         self.root.title("Envio de Arquivos")
         
@@ -52,7 +61,7 @@ class InterfacePrincipal:
         gabarito_content_frame.pack(expand=True)
 
         tk.Label(gabarito_content_frame, text="(não obrigatório)", fg="red").pack()
-        tk.Label(gabarito_content_frame, text="(formatos suportados: .pdf)", fg="gray").pack(pady=(0, 20))
+        tk.Label(gabarito_content_frame, text="(formatos suportados: .pdf, .txt)", fg="gray").pack(pady=(0, 20))
         tk.Label(gabarito_content_frame, text="...ou clique abaixo para escolher o arquivo").pack(pady=10)
         tk.Button(gabarito_content_frame, text="Escolher arquivo", command=self.selecionarGabarito).pack(pady=10)
         self.label_arquivo_gabarito = tk.Label(gabarito_content_frame, text="Nenhum arquivo selecionado", font=("Arial", 9), fg="gray", wraplength=300)
@@ -69,7 +78,7 @@ class InterfacePrincipal:
         btn_enviar.pack(side=tk.RIGHT, padx=10)
 
     def mostraAjuda(self):
-        """Cria a tela de Ajuda, conforme o protótipo."""
+        # Cria a tela de Ajuda, conforme o protótipo.
         self.limparJanela()
         self.root.title("Ajuda")
 
@@ -91,7 +100,7 @@ class InterfacePrincipal:
         tk.Button(self.root, text="Voltar", command=lambda: self.controller.chamaJanela("upload")).pack(pady=20)
 
     def mostraStatus(self):
-        """Cria a tela de Carregamento/Status, conforme o protótipo."""
+        # Cria a tela de Carregamento/Status, conforme o protótipo.
         self.limparJanela()
         self.root.title("Processando...")
 
@@ -104,26 +113,23 @@ class InterfacePrincipal:
         tk.Button(self.root, text="Cancelar", command=self.root.quit).pack(pady=10)
 
     def adicionarLogStatus(self, mensagem: str):
-        """Adiciona uma nova linha de log na tela de status."""
+        # Adiciona uma nova linha de log na tela de status.
         if self.log_status_widget:
             self.log_status_widget.config(state=tk.NORMAL)
             self.log_status_widget.insert(tk.END, mensagem + "\n")
             self.log_status_widget.see(tk.END)
             self.log_status_widget.config(state=tk.DISABLED)
 
-    def mostraResultados(self, dados_alunos: list, dados_prova: list):
-        """Cria a tela de Comparação de Respostas, usando os dados processados."""
+    def mostraResultados(self):
+        # Cria a ESTRUTURA da tela de Comparação de Respostas. O conteúdo é preenchido por atualizar_resultados.
         self.limparJanela()
         self.root.title("Resultados da Correção")
 
-        if not dados_alunos or not dados_prova:
+        if not self.controller.dados_alunos.dadosAlunos or not self.controller.dados_prova.dadosProva:
             tk.Label(self.root, text="Não há dados suficientes para exibir os resultados.", font=("Arial", 16)).pack(pady=50)
             tk.Button(self.root, text="Voltar", command=lambda: self.controller.chamaJanela("upload")).pack()
             return
 
-        aluno_atual = dados_alunos[0]
-        questao_atual = dados_prova[0]
-        
         top_frame = tk.Frame(self.root, padx=10, pady=10)
         top_frame.pack(fill=tk.X)
         
@@ -133,53 +139,85 @@ class InterfacePrincipal:
         content_frame.grid_columnconfigure(1, weight=1)
 
         bottom_frame = tk.Frame(self.root, padx=10, pady=10)
-        bottom_frame.pack(fill=tk.X)
+        bottom_frame.pack(fill=tk.X, side=tk.BOTTOM)
 
-        tk.Label(top_frame, text=f"Nome do aluno: {aluno_atual.get('nome', 'N/A')}", font=("Arial", 12)).pack(side=tk.LEFT)
-        tk.Button(top_frame, text="Próximo >").pack(side=tk.RIGHT)
-        tk.Label(top_frame, text=f"Questão nº: 1", font=("Arial", 12)).pack(side=tk.RIGHT, padx=5)
-        tk.Button(top_frame, text="< Anterior").pack(side=tk.RIGHT)
+        btn_prev_aluno = tk.Button(top_frame, text="< Aluno Anterior", command=lambda: self.controller.mudar_aluno(-1))
+        btn_prev_aluno.pack(side=tk.LEFT)
+        self.aluno_label = tk.Label(top_frame, text="Aluno X de Y", font=("Arial", 12))
+        self.aluno_label.pack(side=tk.LEFT, padx=10)
+        btn_next_aluno = tk.Button(top_frame, text="Próximo Aluno >", command=lambda: self.controller.mudar_aluno(1))
+        btn_next_aluno.pack(side=tk.LEFT)
+        
+        btn_next_questao = tk.Button(top_frame, text="Próxima Questão >", command=lambda: self.controller.mudar_questao(1))
+        btn_next_questao.pack(side=tk.RIGHT)
+        self.questao_label = tk.Label(top_frame, text="Questão X de Y", font=("Arial", 12))
+        self.questao_label.pack(side=tk.RIGHT, padx=10)
+        btn_prev_questao = tk.Button(top_frame, text="< Questão Anterior", command=lambda: self.controller.mudar_questao(-1))
+        btn_prev_questao.pack(side=tk.RIGHT)
 
-        enunciado = questao_atual.get('questao', '')
         tk.Label(content_frame, text="Enunciado da Questão:", font=("Arial", 10, "bold")).grid(row=0, column=0, columnspan=2, sticky="w", pady=(5,0))
-        enunciado_text = tk.Text(content_frame, height=5, wrap=tk.WORD, relief=tk.FLAT, background=self.root.cget('bg'), state="disabled")
-        enunciado_text.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 10))
-        enunciado_text.config(state="normal")
-        enunciado_text.insert(tk.END, enunciado)
-        enunciado_text.config(state="disabled")
+        self.enunciado_text = tk.Text(content_frame, height=5, wrap=tk.WORD, relief=tk.FLAT, background=self.root.cget('bg'))
+        self.enunciado_text.grid(row=1, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
         tk.Label(content_frame, text="Resposta do Aluno:", font=("Arial", 10, "bold")).grid(row=2, column=0, sticky="w")
-        resp_aluno_text = tk.Text(content_frame, height=10, wrap=tk.WORD, relief=tk.SOLID, borderwidth=1)
-        resp_aluno_text.grid(row=3, column=0, sticky="nsew", padx=(0, 5))
-        resp_aluno_text.insert(tk.END, aluno_atual.get('respostas', ['N/A'])[0])
-        resp_aluno_text.config(state="disabled")
+        self.resp_aluno_text = tk.Text(content_frame, height=10, wrap=tk.WORD, relief=tk.SOLID, borderwidth=1)
+        self.resp_aluno_text.grid(row=3, column=0, sticky="nsew", padx=(0, 5))
 
         tk.Label(content_frame, text="Resposta do Gabarito:", font=("Arial", 10, "bold")).grid(row=2, column=1, sticky="w")
-        resp_ia_text = tk.Text(content_frame, height=10, wrap=tk.WORD, relief=tk.SOLID, borderwidth=1)
-        resp_ia_text.grid(row=3, column=1, sticky="nsew", padx=(5, 0))
-        if self.controller.dados_gabarito.dadosGabarito:
-            resp_ia_text.insert(tk.END, self.controller.dados_gabarito.dadosGabarito[0])
-        resp_ia_text.config(state="disabled")
+        self.resp_ia_text = tk.Text(content_frame, height=10, wrap=tk.WORD, relief=tk.SOLID, borderwidth=1)
+        self.resp_ia_text.grid(row=3, column=1, sticky="nsew", padx=(5, 0))
 
         nota_frame = tk.Frame(content_frame)
         nota_frame.grid(row=4, column=0, columnspan=2, sticky="w", pady=10)
         
-        valor_q = questao_atual.get('valorQuestao', 0)
-        
-        tk.Label(nota_frame, text=f"Valor da questão: {valor_q} pts").pack(side=tk.LEFT, padx=5)
-        tk.Label(nota_frame, text=f"Nota Total do Aluno: {aluno_atual.get('nota', 0)} pts").pack(side=tk.LEFT, padx=5)
-        
-        vcmd = (self.root.register(DadosAlunos.validarNota), '%P', str(valor_q))
+        self.valor_q_label = tk.Label(nota_frame, text="Valor da questão: X pts")
+        self.valor_q_label.pack(side=tk.LEFT, padx=5)
+        self.nota_total_label = tk.Label(nota_frame, text="Nota Total do Aluno: Y pts")
+        self.nota_total_label.pack(side=tk.LEFT, padx=5)
         
         tk.Label(nota_frame, text="Ajustar nota da questão:", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=(20, 0))
-        
-        nota_entry = tk.Entry(nota_frame, width=5, validate='key', validatecommand=vcmd)
-        nota_entry.pack(side=tk.LEFT, padx=5)
+        self.nota_entry = tk.Entry(nota_frame, width=5)
+        self.nota_entry.pack(side=tk.LEFT, padx=5)
 
         tk.Button(bottom_frame, text="Exportar Planilha").pack(side=tk.RIGHT)
+        tk.Button(bottom_frame, text="Voltar ao Início", command=lambda: self.controller.chamaJanela("upload")).pack(side=tk.LEFT)
+
+        self.atualizar_resultados()
+
+    def atualizar_resultados(self):
+        # Preenche a tela de resultados com os dados do aluno e questão atuais.
+        def set_text(widget, text):
+            widget.config(state=tk.NORMAL)
+            widget.delete("1.0", tk.END)
+            widget.insert(tk.END, text)
+            widget.config(state=tk.DISABLED)
+
+        dados = self.controller.get_dados_para_resultados()
+        if not dados:
+            return
+
+        aluno_atual = dados["aluno"]
+        questao_atual = dados["questao"]
+        
+        self.aluno_label.config(text=f"Aluno: {aluno_atual.get('nome', 'N/A')} ({dados['aluno_idx']+1} de {dados['total_alunos']})")
+        self.questao_label.config(text=f"Questão {questao_atual.get('numero', dados['questao_idx']+1)} ({dados['questao_idx']+1} de {dados['total_questoes']})")
+
+        # Usa a chave 'pergunta' vinda do parser
+        set_text(self.enunciado_text, questao_atual.get('pergunta', 'Enunciado não encontrado.'))
+        set_text(self.resp_aluno_text, dados["resposta_aluno"])
+        set_text(self.resp_ia_text, dados["resposta_gabarito"])
+        
+        # Usa a chave 'pontos' vinda do parser
+        valor_q = questao_atual.get('pontos', 0)
+        self.valor_q_label.config(text=f"Valor da questão: {valor_q} pts")
+        self.nota_total_label.config(text=f"Nota Total do Aluno: {aluno_atual.get('nota', 0)} pts")
+        
+        vcmd = (self.root.register(DadosAlunos.validarNota), '%P', str(valor_q))
+        self.nota_entry.config(validate='key', validatecommand=vcmd)
+        self.nota_entry.delete(0, tk.END)
 
     def selecionarArquivos(self):
-        """Abre o diálogo para selecionar múltiplos arquivos de prova."""
+        # Abre o diálogo para selecionar múltiplos arquivos de prova.
         paths = filedialog.askopenfilenames(title="Selecionar provas", filetypes=[("PDF", "*.pdf")])
         if paths:
             self.controller.setCaminhosProvas(paths)
@@ -190,7 +228,7 @@ class InterfacePrincipal:
             self.label_arquivo_prova.config(text=nome_display, fg="blue")
 
     def selecionarGabarito(self):
-        """Abre o diálogo para selecionar um único arquivo de gabarito."""
+        # Abre o diálogo para selecionar um único arquivo de gabarito.
         path = filedialog.askopenfilename(title="Selecionar gabarito", filetypes=[("PDF", "*.pdf"), ("Text", "*.txt")])
         if path:
             self.controller.setCaminhoGabarito(path)
