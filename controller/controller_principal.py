@@ -5,7 +5,7 @@ from view.interface_principal import InterfacePrincipal
 from models.dados_alunos import DadosAlunos
 from models.dados_gabarito import DadosGabarito
 from models.dados_prova import DadosProva
-from controller.controller_ia import controller_ia as ControllerIA # Importa a classe da IA
+from models.model_ia import IAModel  # Importa o modelo de IA
 import time
 import os
 
@@ -77,7 +77,7 @@ class ControllerPrincipal:
                 else:
                     self.interface.adicionarLogStatus("Gabarito não fornecido. Gerando com IA...")
                     self.root.update_idletasks()
-                    ia = ControllerIA()
+                    ia = IAModel()
                     respostas_gabarito_ia = []
                     for questao in self.dados_prova.dadosProva:
                         pergunta = questao.get('pergunta', '')

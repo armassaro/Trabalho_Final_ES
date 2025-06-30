@@ -2,8 +2,7 @@
 import re
 import os
 from PyPDF2 import PdfReader
-from controller.controller_ia import controller_ia as ControllerIA
-
+from models.model_ia import IAModel  # Importa o modelo de IA
 # ... (Regex e a classe DadosAlunos permanecem os mesmos até o método calcularNota) ...
 HEADER_RX = re.compile(
     r"Nome:\s*([A-Za-zÀ-ÿ ]+?)\s*RA:\s*(\d{7})",
@@ -81,7 +80,7 @@ class DadosAlunos:
             print("MODEL: Aviso - Gabarito está vazio. Impossível calcular notas.")
             return
         
-        ia = ControllerIA()
+        ia = IAModel()
 
         for aluno in self.dadosAlunos:
             nota_final = 0
