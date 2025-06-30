@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import filedialog, scrolledtext
 import os
 from models.dados_alunos import DadosAlunos
+from csv_export import csv_export as CsvExport
 
 class InterfacePrincipal:
     def __init__(self, root, controller):
@@ -180,6 +181,8 @@ class InterfacePrincipal:
         self.nota_entry.pack(side=tk.LEFT, padx=5)
 
         tk.Button(bottom_frame, text="Exportar Planilha").pack(side=tk.RIGHT)
+        tk.Button(bottom_frame, text="Exportar .csv", command=lambda: CsvExport().adicionaHeader(DadosAlunos.__getattribute__(self.model, 'dadosAlunos'))
+        ).pack(side=tk.RIGHT)
         tk.Button(bottom_frame, text="Voltar ao Início", command=lambda: self.controller.chamaJanela("upload")).pack(side=tk.LEFT)
 
         self.atualizar_resultados()

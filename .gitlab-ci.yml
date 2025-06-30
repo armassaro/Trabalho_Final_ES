@@ -1,0 +1,23 @@
+# Define a imagem Docker que será usada para executar os jobs.
+# Usaremos uma imagem oficial do Python.
+image: python:3.9
+
+# Define os estágios do pipeline. Teremos apenas um estágio de 'test'.
+stages:
+  - test
+
+# Este bloco é executado antes de cada job.
+before_script:
+  - echo "Instalando dependências..."
+  # Atualiza o pip e instala as bibliotecas listadas no requirements.txt
+  - python -m pip install --upgrade pip
+  - pip install -r requirements.txt
+
+# Define o job de teste.
+unit_tests:
+  stage: test
+  # O comando principal para executar os testes.
+  # O 'pytest' vai encontrar e rodar automaticamente os testes na pasta 'tests/'.
+  script:
+    - echo "Executando testes unitários..."
+    - pytest
