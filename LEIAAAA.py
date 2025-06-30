@@ -2,57 +2,66 @@ import re
 from pathlib import Path
 from PyPDF2 import PdfReader
 
-PDF_PATH = Path("novo.pdf")          # ajuste se precisar
+# Arquivo a ler
+PDF_PATH = Path("novo.pdf")
 
-# ────────────────── util ──────────────────
+# ────── Função que devolve TODO o texto do PDF ──────
 def ler_pdf(pdf: Path) -> str:
     reader = PdfReader(str(pdf))
+    # Junta texto de cada página em linhas diferentes
     return "\n".join(p.extract_text() or "" for p in reader.pages)
 
-# ───────────────── HEADER ─────────────────
+# ────── Regex para Nome / RA ──────
 HEADER_RX = re.compile(
     r"Nome:\s*([A-Za-zÀ-ÿ ]+?)\s*RA:\s*(\d{7})",
     re.IGNORECASE | re.DOTALL
 )
 
 def parse_header(texto_bruto: str):
+    """Extrai nome e RA; lança erro se não achar."""
     m = HEADER_RX.search(texto_bruto)
     if not m:
         raise ValueError("Cabeçalho (Nome / RA) não encontrado.")
     nome, ra = m.groups()
     return nome.strip(), ra
 
-# ────────── regex das questões ──────────
+# ────── Regex que isola cada questão ──────
 HEAD_RX = re.compile(
-    r"\((\d+)\)"                 # (N)
-    r"(.*?)"                     # enunciado
-    r"\((\d+)(?:Pontos|pts?)\)"  # (NPontos)
-    r"(.*?)"                     # corpo
-    r"(?=\(\d+\)|$)",            # até próxima questão / fim
+    r"\((\d+)\)"                 # (1) → grupo 1 (número)
+    r"(.*?)"                     # enunciado (grupo 2)
+    r"\((\d+)(?:Pontos|pts?)\)"  # (5Pontos) → grupo 3 (pontos)
+    r"(.*?)"                     # corpo (grupo 4)
+    r"(?=\(\d+\)|$)",            # look‑ahead: próxima questão ou fim
     re.DOTALL
 )
 
+# Regex para alternativas A‑E
 ALT_RX = re.compile(
-    r"([A-E])\(([^)]*)\)"        # letra + flag
-    r"(.*?)"                     # texto até próxima alternativa / R: / fim
-    r"(?=[A-E]\(|R:|$)",
+    r"([A-E])\(([^)]*)\)"  # letra + Boleano
+    r"(.*?)"               # texto da alternativa
+    r"(?=[A-E]\(|R:|$)",   # pára em próxima letra ou R: ou fim
     re.DOTALL
 )
 
+# Regex para resposta discursiva
 RESP_RX = re.compile(r"R:([^A-E()]*)", re.DOTALL)
 
-# ────────── parser principal ──────────
 def parse_questoes(texto_compacto: str):
+    """Retorna lista de dicionários representando as questões."""
     questoes = []
 
     for m in HEAD_RX.finditer(texto_compacto):
         num, enun, pts, corpo = m.groups()
         corpo = corpo.lstrip()
 
-        if corpo.startswith("A"):                                 # múltipla‑escolha
+        # Caso 1: múltipla escolha
+        if corpo.startswith("A"):
             alternativas = {
-                l: {"flag": bool(f.strip()), "texto": t.lstrip()}
-                for l, f, t in ALT_RX.findall(corpo)
+                letra: {
+                    "Boleano": bool(Boleano.strip()),
+                    "texto": texto.lstrip()
+                }
+                for letra, Boleano, texto in ALT_RX.findall(corpo)
             }
             questoes.append({
                 "numero": int(num),
@@ -61,7 +70,9 @@ def parse_questoes(texto_compacto: str):
                 "alternativas": alternativas,
                 "resposta": None
             })
-        elif corpo.startswith("R:"):                              # discursiva
+
+        # Caso 2: discursiva
+        elif corpo.startswith("R:"):
             m_resp = RESP_RX.match(corpo)
             resposta = m_resp.group(1).lstrip() if m_resp else ""
             questoes.append({
@@ -71,24 +82,27 @@ def parse_questoes(texto_compacto: str):
                 "alternativas": {},
                 "resposta": resposta
             })
+
+        # Formato inesperado
         else:
-            raise ValueError(f"Formato inesperado após pontos na questão {num}")
+            raise ValueError(f"Formato inesperado na questão {num}")
 
     return questoes
 
-# ───────────── demo de uso ─────────────
+# ────── Execução quando rodar diretamente ──────
 if __name__ == "__main__":
+    # Texto original
     texto_bruto = ler_pdf(PDF_PATH)
 
-    # 1) Cabeçalho
+    # Cabeçalho
     nome_aluno, ra = parse_header(texto_bruto)
     print("Aluno :", nome_aluno)
     print("RA    :", ra)
 
-    # 2) Compacta para remover todos os espaços em branco
+    # Remove todos brancos p/ facilitar regex
     texto_sem_espacos = re.sub(r"\s+", "", texto_bruto)
 
-    # 3) Questões
+    # Questões
     for q in parse_questoes(texto_sem_espacos):
         print(f"\nQuestão {q['numero']} ({q['pontos']} pt)")
         print(q['pergunta'])
@@ -96,4 +110,4 @@ if __name__ == "__main__":
             print(f"  [Discursiva] → {q['resposta']}")
         else:
             for l, d in q['alternativas'].items():
-                print(f"  {l}) {d['texto']}   flag={d['flag']}")
+                print(f"  {l}) {d['texto']}   Boleano = {d['Boleano']}")
