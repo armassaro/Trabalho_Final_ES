@@ -11,7 +11,7 @@ class InterfacePrincipal:
         self.label_arquivo_gabarito = None
         self.log_status_widget = None
 
-    def _limpar_janela(self):
+    def limparJanela(self):
         """Remove todos os widgets da janela root."""
         for widget in self.root.winfo_children():
             widget.destroy()
@@ -20,7 +20,7 @@ class InterfacePrincipal:
         """
         Cria a tela de envio de arquivos, com conteúdo dos frames centralizado.
         """
-        self._limpar_janela()
+        self.limparJanela()
         self.root.title("Envio de Arquivos")
         
         main_frame = tk.Frame(self.root, padx=10, pady=10)
@@ -70,7 +70,7 @@ class InterfacePrincipal:
 
     def mostraAjuda(self):
         """Cria a tela de Ajuda, conforme o protótipo."""
-        self._limpar_janela()
+        self.limparJanela()
         self.root.title("Ajuda")
 
         tk.Label(self.root, text="Ajuda do Sistema", font=("Arial", 16, "bold"), pady=10).pack()
@@ -92,7 +92,7 @@ class InterfacePrincipal:
 
     def mostraStatus(self):
         """Cria a tela de Carregamento/Status, conforme o protótipo."""
-        self._limpar_janela()
+        self.limparJanela()
         self.root.title("Processando...")
 
         tk.Label(self.root, text="Processando Arquivos", font=("Arial", 16, "bold"), pady=10).pack()
@@ -103,7 +103,7 @@ class InterfacePrincipal:
 
         tk.Button(self.root, text="Cancelar", command=self.root.quit).pack(pady=10)
 
-    def adicionar_log_status(self, mensagem: str):
+    def adicionarLogStatus(self, mensagem: str):
         """Adiciona uma nova linha de log na tela de status."""
         if self.log_status_widget:
             self.log_status_widget.config(state=tk.NORMAL)
@@ -113,7 +113,7 @@ class InterfacePrincipal:
 
     def mostraResultados(self, dados_alunos: list, dados_prova: list):
         """Cria a tela de Comparação de Respostas, usando os dados processados."""
-        self._limpar_janela()
+        self.limparJanela()
         self.root.title("Resultados da Correção")
 
         if not dados_alunos or not dados_prova:
@@ -169,7 +169,7 @@ class InterfacePrincipal:
         tk.Label(nota_frame, text=f"Valor da questão: {valor_q} pts").pack(side=tk.LEFT, padx=5)
         tk.Label(nota_frame, text=f"Nota Total do Aluno: {aluno_atual.get('nota', 0)} pts").pack(side=tk.LEFT, padx=5)
         
-        vcmd = (self.root.register(DadosAlunos.validar_nota), '%P', str(valor_q))
+        vcmd = (self.root.register(DadosAlunos.validarNota), '%P', str(valor_q))
         
         tk.Label(nota_frame, text="Ajustar nota da questão:", font=("Arial", 10, "bold")).pack(side=tk.LEFT, padx=(20, 0))
         
@@ -182,7 +182,7 @@ class InterfacePrincipal:
         """Abre o diálogo para selecionar múltiplos arquivos de prova."""
         paths = filedialog.askopenfilenames(title="Selecionar provas", filetypes=[("PDF", "*.pdf")])
         if paths:
-            self.controller.set_caminhos_provas(paths)
+            self.controller.setCaminhosProvas(paths)
             if len(paths) == 1:
                 nome_display = os.path.basename(paths[0])
             else:
@@ -193,5 +193,5 @@ class InterfacePrincipal:
         """Abre o diálogo para selecionar um único arquivo de gabarito."""
         path = filedialog.askopenfilename(title="Selecionar gabarito", filetypes=[("PDF", "*.pdf"), ("Text", "*.txt")])
         if path:
-            self.controller.set_caminho_gabarito(path)
+            self.controller.setCaminhoGabarito(path)
             self.label_arquivo_gabarito.config(text=os.path.basename(path), fg="blue")
