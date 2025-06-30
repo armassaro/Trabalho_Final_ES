@@ -1,74 +1,99 @@
-"""
-Lê o PDF, elimina todos os espaços em branco e separa cada questão em:
-1. número          → int
-2. enunciado       → str
-3. pontos          → int
-4. alternativas    → dict {'A':..., 'B':..., 'C':..., 'D':..., 'E':...}
-
-Formato esperado (sem espaços):
-(N)Pergunta(NPontos)(A).respA(B).respB(C).respC(D).respD(E).respE...
---------------------------------------------------------------------
-"""
-
 import re
 from pathlib import Path
-from PyPDF2 import PdfReader   # pip install PyPDF2
+from PyPDF2 import PdfReader
 
-# ---------- CONFIGURAÇÃO ----------
-PDF_PATH = Path("Teste.pdf")   # nome do arquivo na MESMA pasta do .py
-# ----------------------------------
+PDF_PATH = Path("novo.pdf")          # ajuste se precisar
 
-def extrair_texto_puro(pdf: Path) -> str:
-    """Extrai texto do PDF e elimina TODOS os espaços em branco (tabs, \n, etc.)."""
-    if not pdf.exists() or pdf.suffix.lower() != ".pdf":
-        raise FileNotFoundError(f"Arquivo '{pdf}' não encontrado ou não é PDF")
+# ────────────────── util ──────────────────
+def ler_pdf(pdf: Path) -> str:
     reader = PdfReader(str(pdf))
-    bruto = "\n".join(page.extract_text() or "" for page in reader.pages)
-    return re.sub(r"\s+", "", bruto)  # remove \s (espaço, tab, \r, \n, etc.)
+    return "\n".join(p.extract_text() or "" for p in reader.pages)
 
-def parse_questoes(texto: str):
-    """
-    Varre toda a string e devolve uma lista de dicts:
-    [{'numero':1,'pontos':5,'pergunta':'...','alternativas':{'A':'...','B':'...'}}, ...]
-    """
-    padrao = re.compile(
-        r"\((\d+)\)"            # (N)  → nº da questão
-        r"(.*?)"                # Pergunta (lazy)
-        r"\((\d+)Pontos\)"      # (NPontos)
-        r"\(A\)\.?([^()]*?)"    # (A).respostaA
-        r"\(B\)\.?([^()]*?)"    # (B).respostaB
-        r"\(C\)\.?([^()]*?)"    # (C).respostaC
-        r"\(D\)\.?([^()]*?)"    # (D).respostaD
-        r"\(E\)\.?([^()]*?)"    # (E).respostaE
-        r"(?=\(\d+\)|$)",       # pára antes da próxima questão ou do fim
-        re.IGNORECASE | re.DOTALL
-    )
+# ───────────────── HEADER ─────────────────
+HEADER_RX = re.compile(
+    r"Nome:\s*([A-Za-zÀ-ÿ ]+?)\s*RA:\s*(\d{7})",
+    re.IGNORECASE | re.DOTALL
+)
 
+def parse_header(texto_bruto: str):
+    m = HEADER_RX.search(texto_bruto)
+    if not m:
+        raise ValueError("Cabeçalho (Nome / RA) não encontrado.")
+    nome, ra = m.groups()
+    return nome.strip(), ra
+
+# ────────── regex das questões ──────────
+HEAD_RX = re.compile(
+    r"\((\d+)\)"                 # (N)
+    r"(.*?)"                     # enunciado
+    r"\((\d+)(?:Pontos|pts?)\)"  # (NPontos)
+    r"(.*?)"                     # corpo
+    r"(?=\(\d+\)|$)",            # até próxima questão / fim
+    re.DOTALL
+)
+
+ALT_RX = re.compile(
+    r"([A-E])\(([^)]*)\)"        # letra + flag
+    r"(.*?)"                     # texto até próxima alternativa / R: / fim
+    r"(?=[A-E]\(|R:|$)",
+    re.DOTALL
+)
+
+RESP_RX = re.compile(r"R:([^A-E()]*)", re.DOTALL)
+
+# ────────── parser principal ──────────
+def parse_questoes(texto_compacto: str):
     questoes = []
-    for m in padrao.finditer(texto):
-        numero   = int(m.group(1))
-        enunciado= m.group(2)
-        pontos   = int(m.group(3))
-        # strip() remove pontinhos extras ou quebras acidentais
-        alternativas = dict(zip("ABCDE",
-            (resp.lstrip(".").strip() for resp in m.groups()[3:8])))
 
-        questoes.append({
-            "numero": numero,
-            "pergunta": enunciado,
-            "pontos": pontos,
-            "alternativas": alternativas,
-        })
+    for m in HEAD_RX.finditer(texto_compacto):
+        num, enun, pts, corpo = m.groups()
+        corpo = corpo.lstrip()
+
+        if corpo.startswith("A"):                                 # múltipla‑escolha
+            alternativas = {
+                l: {"flag": bool(f.strip()), "texto": t.lstrip()}
+                for l, f, t in ALT_RX.findall(corpo)
+            }
+            questoes.append({
+                "numero": int(num),
+                "pergunta": enun,
+                "pontos": int(pts),
+                "alternativas": alternativas,
+                "resposta": None
+            })
+        elif corpo.startswith("R:"):                              # discursiva
+            m_resp = RESP_RX.match(corpo)
+            resposta = m_resp.group(1).lstrip() if m_resp else ""
+            questoes.append({
+                "numero": int(num),
+                "pergunta": enun,
+                "pontos": int(pts),
+                "alternativas": {},
+                "resposta": resposta
+            })
+        else:
+            raise ValueError(f"Formato inesperado após pontos na questão {num}")
+
     return questoes
 
-# ----------------- EXECUÇÃO -----------------
-conteudo_sem_espacos = extrair_texto_puro(PDF_PATH)
-questions = parse_questoes(conteudo_sem_espacos)
+# ───────────── demo de uso ─────────────
+if __name__ == "__main__":
+    texto_bruto = ler_pdf(PDF_PATH)
 
-# Exemplo de uso: imprimir tudo organizado
-for q in questions:
-    print(f"\nQuestão {q['numero']}  ({q['pontos']} pt)")
-    print(q['pergunta'])
-    for letra, resp in q['alternativas'].items():
-        print(f"  {letra}) {resp}")
-# --------------------------------------------
+    # 1) Cabeçalho
+    nome_aluno, ra = parse_header(texto_bruto)
+    print("Aluno :", nome_aluno)
+    print("RA    :", ra)
+
+    # 2) Compacta para remover todos os espaços em branco
+    texto_sem_espacos = re.sub(r"\s+", "", texto_bruto)
+
+    # 3) Questões
+    for q in parse_questoes(texto_sem_espacos):
+        print(f"\nQuestão {q['numero']} ({q['pontos']} pt)")
+        print(q['pergunta'])
+        if q['resposta'] is not None:
+            print(f"  [Discursiva] → {q['resposta']}")
+        else:
+            for l, d in q['alternativas'].items():
+                print(f"  {l}) {d['texto']}   flag={d['flag']}")
