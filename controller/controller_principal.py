@@ -26,7 +26,7 @@ class ControllerPrincipal:
         self.dados_gabarito = DadosGabarito()
         self.dados_prova = DadosProva()
 
-    def _centralizar_janela(self, largura, altura):
+    def centralizarJanela(self, largura, altura):
         """Calcula a posição para centralizar a janela principal na tela."""
         largura_tela = self.root.winfo_screenwidth()
         altura_tela = self.root.winfo_screenheight()
@@ -44,32 +44,32 @@ class ControllerPrincipal:
     def chamaJanela(self, janela: str):
         # Gerencia a transição entre as diferentes telas da aplicação.
         if janela == "upload":
-            self._centralizar_janela(800, 450)
+            self.centralizarJanela(800, 450)
             self.interface.mostraUpload() #
         elif janela == "ajuda":
-            self._centralizar_janela(600, 400)
+            self.centralizarJanela(600, 400)
             self.interface.mostraAjuda() #
         elif janela == "status":
             if not self.caminhos_provas:
                 messagebox.showwarning("Nenhuma Prova", "Por favor, selecione ao menos um arquivo de prova antes de enviar.")
                 return
-            self._centralizar_janela(600, 400)
-            self.iniciar_processamento()
+            self.centralizarJanela(600, 400)
+            self.iniciarProcessamento()
         elif janela == "resultados":
-            self._centralizar_janela(900, 650)
+            self.centralizarJanela(900, 650)
             # Passa os dados reais processados para a tela de resultados
             self.interface.mostraResultados(self.dados_alunos.dadosAlunos, self.dados_prova.dadosProva) #
 
-    def iniciar_processamento(self):
+    def iniciarProcessamento(self):
         """Orquestra o processo de correção chamando os modelos, conforme o diagrama."""
         self.interface.mostraStatus() #
         self.statusCorrecao = "processando"
-        self.interface.adicionar_log_status(f"Status da Correção: {self.statusCorrecao}")
+        self.interface.adicionarLogStatus(f"Status da Correção: {self.statusCorrecao}")
         
         def processar():
             try:
                 # ITEM 5: Ler a estrutura da prova (usando o primeiro arquivo como base)
-                self.interface.adicionar_log_status("Lendo estrutura da prova...")
+                self.interface.adicionarLogStatus("Lendo estrutura da prova...")
                 leitor_base = PdfReader(self.caminhos_provas[0])
                 self.dados_prova.lerProva(leitor_base) #
                 self.root.update_idletasks()
@@ -77,37 +77,37 @@ class ControllerPrincipal:
                 # ITEM 6: Processar Gabarito (se houver)
                 if self.caminho_gabarito:
                     nome_gabarito = os.path.basename(self.caminho_gabarito)
-                    self.interface.adicionar_log_status(f"Lendo gabarito de: {nome_gabarito}...")
+                    self.interface.adicionarLogStatus(f"Lendo gabarito de: {nome_gabarito}...")
                     gabarito_reader = PdfReader(self.caminho_gabarito)
                     self.dados_gabarito.lerGabarito(gabarito_reader) #
                     self.root.update_idletasks()
 
                 # ITEM 4: Ler as provas dos alunos
-                self.interface.adicionar_log_status(f"Lendo as respostas de {len(self.caminhos_provas)} aluno(s)...")
+                self.interface.adicionarLogStatus(f"Lendo as respostas de {len(self.caminhos_provas)} aluno(s)...")
                 leitores_provas = [PdfReader(path) for path in self.caminhos_provas]
                 self.dados_alunos.lerProvas(leitores_provas, self.caminhos_provas) #
                 self.root.update_idletasks()
 
                 # ITEM 4 (continuação): Calcular as notas
-                self.interface.adicionar_log_status("Corrigindo provas e calculando notas...")
+                self.interface.adicionarLogStatus("Corrigindo provas e calculando notas...")
                 self.dados_alunos.calcularNota(self.dados_gabarito.dadosGabarito, self.dados_prova.dadosProva) #
                 self.root.update_idletasks()
 
                 # ITEM 7 e 8: Finalização e chamada da tela de resultados
                 self.statusCorrecao = "concluido"
-                self.interface.adicionar_log_status(f"Status da Correção: {self.statusCorrecao}")
+                self.interface.adicionarLogStatus(f"Status da Correção: {self.statusCorrecao}")
                 self.root.after(1000, lambda: self.chamaJanela("resultados"))
 
             except Exception as e:
                 self.statusCorrecao = "erro"
-                self.interface.adicionar_log_status(f"\nERRO: {e}")
+                self.interface.adicionarLogStatus(f"\nERRO: {e}")
                 messagebox.showerror("Erro no Processamento", f"Ocorreu um erro: {e}")
 
         # Roda o processamento após a janela de status ser exibida
         self.root.after(100, processar)
 
-    def set_caminhos_provas(self, paths):
+    def setCaminhosProvas(self, paths):
         self.caminhos_provas = paths
 
-    def set_caminho_gabarito(self, path):
+    def setCaminhoGabarito(self, path):
         self.caminho_gabarito = path

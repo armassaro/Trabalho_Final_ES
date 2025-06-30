@@ -51,7 +51,7 @@ class DadosAlunos:
         print("MODEL: Notas calculadas.")
 
 
-    def validar_nota(novo_valor, valor_max_str):
+    def validarNota(novo_valor, valor_max_str):
         if novo_valor == "":
             return True
         try:
