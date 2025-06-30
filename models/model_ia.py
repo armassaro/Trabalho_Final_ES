@@ -10,11 +10,13 @@ class IAModel:
         self.num_ctx = num_ctx
 
     def gerarRespostaGabarito(self, pergunta: str) -> str:
-        """Gera resposta modelo para uma pergunta dissertativa"""
+        """Gera resposta model para uma pergunta dissertativa"""
         try:
             response = ollama.generate(  # Mudado para generate() em vez de chat()
                 model=self.model,
-                prompt=f"Gere um gabarito modelo para a pergunta: {pergunta}",
+                prompt=f"""Gere um gabarito modelo o mais simples possivel maximo de 
+                3 linhas para a pergunta se for de alternativa somente diga a questão que é 
+                e a alternativa exemplo 1-A TEM QUE SER NESSE FORMATO: {pergunta}""",
                 options={
                     'temperature': self.temperature,
                     'num_ctx': self.num_ctx
