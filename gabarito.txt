@@ -2,26 +2,9 @@
 2-A fotossíntese é o processo pelo qual as plantas, algas e algumas bactérias convertem energia luminosa em energia química armazenada na glicose, utilizando água e dióxido de carbono e liberando oxigênio como subproduto.
 
 
-Explique a importância da fotossíntese para o ciclo do carbono no contexto das mudanças climáticas globais em um texto que inclua referências científicas, discuta as implicações potenciais de uma diminuição nas taxas naturais de fotossíntese e sugira estratégias para mitigar esses impactos. A resposta deve ser articulada com linguagem técnica adequada ao campo da biogeoquímica, apresentando argumentos baseados em evidências empíricas sem ultrapassar 300 palavras.
-
-
-Explique a importância do ciclo do carbono para o equilíbrio climático global e como as atividades humanas podem perturbar esse ciclo, em um texto que inclua referências científicas, discuta os impactos potenciais de uma diminuição nas taxas naturais de fotossintese e sugira estratégias para mitigar esses impactos. A resposta deve ser articulada com linguagem técnica adequada ao campo da biogeoquímica, apresentando argumentos baseados em evidências empíricas sem ultrapassar 300 palavras.
-
-
-A fotossíntese é o processo bioquimico fundamental que converte a energia luminosa solar em energia química armazenada na glicose, utilizando água e dióxido de carbono atmosférico como matérias-primas. Este mecanismo biológico é crucial para o ciclo do carbono global (Raven et al., 2019), pois as plantas atuam como sumidouros naturais, absorvendo CO₂ durante a fixação de carbono e liberando oxigênio. A diminuição nas taxas de fotossíntese pode ter consequências significativas para o equilíbrio climático global (Smith et al., 2021), potencialmente exacerbando as mudanças climáticas por reduzir a sequestração natural do carbono. Mitigações estratégias incluem a conservação de ecossistemas terrestres e aquáticos, reforço da biodiversidade para aumentar o uso eficiente dos recursos hídricos (Johnson et al., 2020), e investigação em tecnologias que simulam ou complementem a fotossíntese artificial.
-
-
-Referências:
-
-- Raven, P. V., Gentry, T. F., & Evert, R. R. (2019). Biological diversity and the ecology of forests in Amazonia. *Annual Review of Plant Biology*, 70, 345-366.
-
-- Smith, P., Doe, A., & Roe, B. (2021). Impacts of climate change on terrestrial carbon sequestration: Evidence and projections for the future. *Global Change Biology*, 27(4), 856-873.
-
-- Johnson, L. R., Green, T., & Black, S. (2020). Enhancing photosynthetic efficiency in crops: A sustainable approach to mitigate climate change impacts on agriculture. *Journal of Agricultural Science*, 158(3), 476-490.
+Explique a importância da fotossíntese para o ciclo do carbono no contexto das mudanças climáticas sem usar as palavras "carbono", "clima" ou "mudança".
 3-B
-4-Gravidade é a força que atrai objetos com massa um em direção ao outro, especialmente o planeta Terra em direção ao centro de sua massa. É uma das quatro forças fundamentais da natureza e desempenha um papel crucial na estrutura do universo.
+4-Gravidade é a força que atrai objetos com massa um em direção ao outro, especialmente a Terra e seus habitantes. É uma das quatro forças fundamentais da natureza.
 
 
-## Instrucción más difícil (en Español): 
-
-        Crea una respuesta detallada y técnica que explique la importancia de los patrones climáticos en el desarrollo urbano, incluyendo al menos dos ejemplos históricos específicos. La respuesta debe ser coherente con un artículo académico y no exceder las 3 líneas para cada ejemplo.
+## Instrucción más difícil con al menos 2 restricciones adicionales:

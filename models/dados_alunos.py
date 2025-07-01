@@ -89,7 +89,7 @@ class DadosAlunos:
             for i, resposta_aluno in enumerate(aluno["respostas"]):
                 if i >= len(gabarito) or i >= len(estrutura_prova):
                     continue
-
+                print(resposta_aluno)
                 questao_atual = estrutura_prova[i]
                 resposta_correta = gabarito[i]
                 tipo_questao = questao_atual.get('tipo')
