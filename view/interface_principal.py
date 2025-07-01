@@ -181,8 +181,11 @@ class InterfacePrincipal:
         self.nota_entry.pack(side=tk.LEFT, padx=5)
 
         tk.Button(bottom_frame, text="Exportar Planilha").pack(side=tk.RIGHT)
-        tk.Button(bottom_frame, text="Exportar .csv", command=lambda: CsvExport().adicionaHeader(DadosAlunos.__getattribute__(self.model, 'dadosAlunos'))
-        ).pack(side=tk.RIGHT)
+        tk.Button(
+            bottom_frame, 
+            text="Exportar Relatório (.csv)", 
+            command=self.controller.exportar_para_csv
+        ).pack(side=tk.RIGHT, padx=5)
         tk.Button(bottom_frame, text="Voltar ao Início", command=lambda: self.controller.chamaJanela("upload")).pack(side=tk.LEFT)
 
         self.atualizar_resultados()
@@ -224,7 +227,7 @@ class InterfacePrincipal:
         paths = filedialog.askopenfilenames(title="Selecionar provas", filetypes=[("PDF", "*.pdf")])
         if paths:
             self.controller.setCaminhosProvas(paths)
-            if len(paths) == 1:
+            if len(paths) is 1:
                 nome_display = os.path.basename(paths[0])
             else:
                 nome_display = f"{len(paths)} arquivos selecionados"
