@@ -1,80 +1,107 @@
+from abc import ABC, abstractmethod
 import ollama
-import json
 import re
-from typing import Dict, Union
+import json
+from typing import Dict, List, Optional, Union
 
-class IAModel:
-    def __init__(self, model: str = "phi3:mini", temperature: float = 0.1, num_ctx: int = 2048):
-        self.model = model
-        self.temperature = temperature
-        self.num_ctx = num_ctx
+class EstrategiaCorrecao(ABC):
+    @abstractmethod
+    def gerar_gabarito(self, pergunta: str, alternativas: Optional[List[str]] = None) -> str:
+        pass
+    
+    @abstractmethod
+    def corrigir(self, resposta_aluno: str, resposta_gabarito: str, pontos: float) -> Dict[str, Union[float, str]]:
+        pass
 
-    def gerarRespostaGabarito(self, pergunta: str) -> str:
-        """Gera resposta model para uma pergunta dissertativa"""
-        try:
-            response = ollama.generate(  # Mudado para generate() em vez de chat()
-                model=self.model,
-                prompt=f"""Gere um gabarito modelo o mais simples possivel maximo de 
-                3 linhas para a pergunta se for de alternativa somente diga a questão que é 
-                e a alternativa exemplo 1-A TEM QUE SER NESSE FORMATO: {pergunta}""",
-                options={
-                    'temperature': self.temperature,
-                    'num_ctx': self.num_ctx
-                }
-            )
-            return response['response']
-        except Exception as e:
-            print(f"Erro ao gerar gabarito: {str(e)}")
-            return "Resposta não disponível"
-
-    def avaliar_resposta_aluno(self, pergunta: str, gabarito: str, resposta_aluno: str, nota_maxima: int = 10) -> Dict[str, Union[float, str]]:
-        """Avalia a resposta do aluno retornando nota e feedback"""
+class CorrecaoObjetiva(EstrategiaCorrecao):
+    def gerar_gabarito(self, pergunta: str, alternativas: Optional[List[str]] = None) -> str:
         prompt = f"""
-        Avalie esta resposta de aluno considerando:
-        - Pergunta: {pergunta}
-        - Gabarito: {gabarito}
-        - Resposta do aluno: {resposta_aluno}
+        Para a questão objetiva abaixo, responda APENAS com a letra da alternativa correta (A, B, C, etc.)
         
-        Retorne um JSON com: {{"nota": float, "feedback": str}}
-        A nota deve ser entre 0 e {nota_maxima}.
+        Pergunta: {pergunta}
+        Alternativas:
+        {chr(10).join(alternativas) if alternativas else 'Nenhuma alternativa fornecida'}
+        """
+        
+        response = ollama.generate(
+            model='phi3:mini',
+            prompt=prompt,
+            options={'temperature': 0}  # Determinístico
+        )
+        
+        match = re.search(r'[A-E]', response['response'].upper())
+        return match.group(0) if match else 'A'
+
+    def corrigir(self, resposta_aluno: str, resposta_gabarito: str, pontos: float) -> Dict[str, Union[float, str]]:
+        correta = resposta_aluno.upper() == resposta_gabarito.upper()
+        return {
+            'nota': pontos if correta else 0,
+            'feedback': f"Resposta {'correta' if correta else 'incorreta'} (Esperado: {resposta_gabarito})"
+        }
+
+class CorrecaoDissertativa(EstrategiaCorrecao):
+    def gerar_gabarito(self, pergunta: str, alternativas: Optional[List[str]] = None) -> str:
+        prompt = f"""
+        Gere uma resposta modelo concisa (máximo 2 linhas) para:
+        {pergunta}
+        """
+        
+        response = ollama.generate(
+            model='phi3:mini',
+            prompt=prompt,
+            options={'temperature': 0.3}
+        )
+        
+        return response['response'].strip()
+
+    def corrigir(self, resposta_aluno: str, resposta_gabarito: str, pontos: float) -> Dict[str, Union[float, str]]:
+        prompt = f"""
+        Avalie a resposta do aluno considerando o gabarito oficial.
+        Retorne APENAS um JSON com: {{"nota": float, "feedback": str}}
+        
+        Pergunta: [Redacted]
+        Gabarito: {resposta_gabarito}
+        Resposta do aluno: {resposta_aluno}
+        Pontuação máxima: {pontos}
         """
         
         try:
             response = ollama.generate(
-                model=self.model,
+                model='phi3:mini',
                 prompt=prompt,
-                options={
-                    'temperature': self.temperature,
-                    'num_ctx': self.num_ctx
-                }
+                options={'temperature': 0.2}
             )
-            
-            # Parse seguro da resposta
-            response_text = response['response']
-            print("Resposta da IA:", response_text)  # Debug: Exibir resposta da IA
-            try:
-                data = json.loads(response_text)
-                if isinstance(data, dict):
-                    nota = min(float(data.get("nota", 0)), float(nota_maxima))
-                    feedback = data.get("feedback", "Sem feedback detalhado")
-                    return {"nota": nota, "feedback": feedback}
-            except json.JSONDecodeError:
-                # Fallback para respostas não JSON
-                if any(word in response_text.lower() for word in ["excelente", "bom", "correto"]):
-                    return {"nota": nota_maxima * 0.9, "feedback": response_text}
-                return {"nota": 0, "feedback": response_text}
-                
-        except Exception as e:
-            print(f"Erro na avaliação: {str(e)}")
-        
-        return {"nota": 0, "feedback": "Erro na avaliação"}
+            data = json.loads(response['response'])
+            return {
+                'nota': min(float(data['nota']), pontos),
+                'feedback': data['feedback']
+            }
+        except:
+            # Fallback simples
+            similar = len(set(resposta_aluno.lower().split()) & set(resposta_gabarito.lower().split())) / \
+                     max(len(set(resposta_gabarito.lower().split())), 1)
+            return {
+                'nota': similar * pontos,
+                'feedback': f"Similaridade: {similar*100:.1f}% com o gabarito"
+            }
 
-    @staticmethod
-    def validarNota(novo_valor, valor_max_str):
-        """Valida se uma nota está dentro do intervalo permitido"""
-        try:
-            valor_max = float(valor_max_str)
-            nota = float(novo_valor) if novo_valor else 0
-            return 0 <= nota <= valor_max
-        except ValueError:
-            return False
+class IAModel:
+    def __init__(self):
+        self.estrategias = {
+            'objetiva': CorrecaoObjetiva(),
+            'dissertativa': CorrecaoDissertativa()
+        }
+    
+    def gerar_gabarito(self, questao: Dict) -> str:
+        estrategia = self.estrategias[questao['tipo']]
+        alternativas = None
+        if questao['tipo'] == 'objetiva':
+            alternativas = [f"{k}) {v}" for k, v in questao['alternativas'].items()]
+        return estrategia.gerar_gabarito(questao['pergunta'], alternativas)
+    
+    def corrigir(self, questao: Dict, resposta_aluno: str, resposta_gabarito: str) -> Dict[str, Union[float, str]]:
+        return self.estrategias[questao['tipo']].corrigir(
+            resposta_aluno,
+            resposta_gabarito,
+            questao['pontos']
+        )
