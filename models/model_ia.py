@@ -49,7 +49,7 @@ class CorrecaoDissertativa(EstrategiaCorrecao):
         response = ollama.generate(
             model='phi3:mini',
             prompt=prompt,
-            options={'temperature': 0.3}
+            options={'temperature': 0.1}
         )
         
         return response['response'].strip()
@@ -69,7 +69,7 @@ class CorrecaoDissertativa(EstrategiaCorrecao):
             response = ollama.generate(
                 model='phi3:mini',
                 prompt=prompt,
-                options={'temperature': 0.2}
+                options={'temperature': 0.1}
             )
             data = json.loads(response['response'])
             return {
