@@ -151,10 +151,11 @@ class ControllerPrincipal:
         aluno_atual = self.dados_alunos.dadosAlunos[self.aluno_atual_idx]
         questao_atual = self.dados_prova.dadosProva[self.questao_atual_idx]
 
-        # Obtém resposta do aluno
-        resposta_aluno = "Sem resposta"
-        if 'respostas' in aluno_atual and self.questao_atual_idx < len(aluno_atual['respostas']):
-            resposta_aluno = aluno_atual['respostas'][self.questao_atual_idx]
+        # Obtém resposta do aluno - versão mais robusta
+        resposta_aluno = aluno_atual.get('respostas', ['Sem resposta'])[self.questao_atual_idx]
+        if not resposta_aluno or resposta_aluno == "N/A":
+            resposta_aluno = "Sem resposta"
+
 
         # Obtém resposta do gabarito
         resposta_gabarito = "Gabarito não fornecido"

@@ -2,79 +2,240 @@
 import re
 import os
 from PyPDF2 import PdfReader
-from models.model_ia import IAModel  # Importa o modelo de IA
-# ... (Regex e a classe DadosAlunos permanecem os mesmos até o método calcularNota) ...
-HEADER_RX = re.compile(
-    r"Nome:\s*([A-Za-zÀ-ÿ ]+?)\s*RA:\s*(\d{7})",
-    re.IGNORECASE | re.DOTALL
-)
-HEAD_RX = re.compile(
-    r"\((\d+)\)(.*?)\((\d+(?:\.\d+)?)(?:Pontos|pts?)\)(.*?)"
-    r"(?=\(\d+\)|$)", re.DOTALL
-)
-ALT_RX = re.compile(
-    r"([A-E])\(([^)]*)\)(.*?)"
-    r"(?=[A-E]\(|R:|$)", re.DOTALL
-)
-RESP_RX = re.compile(r"R:([^A-E()]*)", re.DOTALL)
-
+from models.model_ia import IAModel
+from datetime import datetime
 
 class DadosAlunos:
-    def __init__(self):
+    def __init__(self, debug=False):
         self.dadosAlunos = []
+        self.debug = debug
+        self.debug_dir = "debug_logs"
+        os.makedirs(self.debug_dir, exist_ok=True)
+
+    def _log_debug(self, message, file_prefix=""):
+        """Registra mensagens de debug quando habilitado"""
+        if self.debug:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = os.path.join(self.debug_dir, f"{file_prefix}_{timestamp}.log")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"{message}\n")
 
     def lerProvas(self, provas_paths: list[str]):
-        # Lê as respostas dos alunos a partir de seus arquivos de prova em PDF.
-        print(f"MODEL: Lendo as respostas de {len(provas_paths)} alunos...")
+        """Lê as provas dos alunos com mecanismos de debug avançados"""
+        self._log_debug("Iniciando leitura de provas", "lerProvas")
+        
         self.dadosAlunos = []
+        resultados_debug = []
 
-        for path in provas_paths:
-            print(f"MODEL: Processando '{path}'...")
-            
+        for idx, path in enumerate(provas_paths):
             try:
+                self._log_debug(f"\nProcessando arquivo {idx+1}/{len(provas_paths)}: {path}", "file_processing")
+                
+                # 1. Extração do texto
                 reader = PdfReader(path)
-                texto_bruto = "\n".join(p.extract_text() or "" for p in reader.pages)
+                texto_bruto = "\n".join(p.extract_text() for p in reader.pages if p.extract_text())
+                
+                # Debug: Salva texto bruto extraído
+                debug_file = os.path.join(self.debug_dir, f"raw_text_{os.path.basename(path)}.txt")
+                with open(debug_file, "w", encoding="utf-8") as f:
+                    f.write(texto_bruto)
+                self._log_debug(f"Texto bruto salvo em {debug_file}", "extraction")
+
+                # 2. Parse do cabeçalho
+                header_data = self._parse_header(texto_bruto, path)
+                self._log_debug(f"Cabeçalho identificado: {header_data}", "header")
+
+                # 3. Parse das questões
+                respostas, debug_info = self._parse_questoes(texto_bruto)
+                resultados_debug.append(debug_info)
+                
+                # 4. Armazenamento dos dados
+                self.dadosAlunos.append({
+                    "nome": header_data["nome"],
+                    "ra": header_data["ra"],
+                    "respostas": respostas,
+                    "nota": 0,
+                    "justificativas": [""] * len(respostas),
+                    "debug_info": debug_info  # Apenas para debug
+                })
+
             except Exception as e:
-                print(f"Erro ao ler o PDF '{path}': {e}")
+                error_msg = f"Erro ao processar {path}: {str(e)}"
+                self._log_debug(error_msg, "error")
+                resultados_debug.append({"arquivo": path, "erro": str(e)})
                 continue
 
-            # Parse Header
-            nome_aluno = "Desconhecido"
-            header_match = HEADER_RX.search(texto_bruto)
-            if header_match:
-                nome_aluno = header_match.group(1).strip()
-            else:
-                nome_aluno = os.path.splitext(os.path.basename(path))[0]
+        # Gera relatório consolidado de debug
+        self._generate_debug_report(resultados_debug)
+        print("MODEL: Processamento concluído. Verifique os logs em", self.debug_dir)
 
-            # Parse Respostas
-            respostas = []
-            texto_compacto = re.sub(r"\s+", "", texto_bruto)
-            for n, enun, pts, corpo in HEAD_RX.findall(texto_compacto):
-                corpo = corpo.lstrip()
-                if corpo.startswith("A"):
-                    resposta_marcada = "N/A"
-                    for letra, flag, texto in ALT_RX.findall(corpo):
-                        if flag.strip():
-                            resposta_marcada = letra
-                            break
-                    respostas.append(resposta_marcada)
-                elif corpo.startswith("R:"):
-                    match = RESP_RX.match(corpo)
-                    respostas.append(match.group(1).lstrip() if match else "")
+    def _parse_header(self, texto_bruto: str, path: str) -> dict:
+        """Extrai informações do cabeçalho com múltiplos padrões"""
+        padroes = [
+            r"Nome:\s*(.*?)\s*RA:\s*(\d+)",
+            r"Aluno:\s*(.*?)\s*Matrícula:\s*(\d+)",
+            r"Nome do aluno:\s*(.*?)\s*Registro:\s*(\d+)"
+        ]
+
+        for padrao in padroes:
+            match = re.search(padrao, texto_bruto, re.IGNORECASE | re.DOTALL)
+            if match:
+                return {"nome": match.group(1).strip(), "ra": match.group(2)}
+
+        # Fallback: usa nome do arquivo se não encontrar padrão
+        nome_arquivo = os.path.splitext(os.path.basename(path))[0]
+        return {"nome": nome_arquivo, "ra": "0000000"}
+
+    def _parse_questoes(self, texto_bruto: str) -> tuple:
+        """Extrai respostas das questões com detalhamento de debug"""
+        respostas = []
+        debug_info = {
+            "questoes": [],
+            "erros": []
+        }
+
+        # Padrão para identificar questões
+        padrao_questao = r"""
+            \(\s*(\d+)\s*\)                # Número da questão
+            \s*(.*?)\s*                    # Enunciado
+            \(\s*([\d.]+)\s*(?:Pontos|pts?)  # Pontos
+            \s*\)\s*
+            (.*?)                          # Corpo da questão
+            (?=\(\s*\d+\s*\)|\Z)          # Lookahead para próxima questão
+        """
+        
+        questoes = re.finditer(padrao_questao, texto_bruto, re.VERBOSE | re.DOTALL | re.IGNORECASE)
+
+        for i, questao in enumerate(questoes, 1):
+            try:
+                numero = questao.group(1)
+                corpo = questao.group(4).strip()
+                questao_debug = {
+                    "numero": numero,
+                    "corpo_original": corpo,
+                    "resposta_extraida": None,
+                    "tipo": None
+                }
+
+                # Verifica tipo de questão
+                if re.search(r"^[A-E]\)", corpo, re.MULTILINE):
+                    questao_debug["tipo"] = "objetiva"
+                    resposta = self._parse_resposta_objetiva(corpo, questao_debug)
+                elif "R:" in corpo:
+                    questao_debug["tipo"] = "dissertativa"
+                    resposta = self._parse_resposta_dissertativa(corpo, questao_debug)
                 else:
-                    respostas.append("ERRO_FORMATO")
-            
-            self.dadosAlunos.append({
-                "nome": nome_aluno,
-                "respostas": respostas,
-                "nota": 0,
-                "justificativas": [] # Armazena feedback da IA
-            })
-        print("MODEL: Respostas dos alunos lidas.")
+                    questao_debug["tipo"] = "desconhecido"
+                    resposta = "FORMATO_NÃO_RECONHECIDO"
 
+                questao_debug["resposta_extraida"] = resposta
+                respostas.append(resposta)
+                debug_info["questoes"].append(questao_debug)
+
+            except Exception as e:
+                error_msg = f"Erro na questão {i}: {str(e)}"
+                debug_info["erros"].append(error_msg)
+                respostas.append("ERRO_DE_PROCESSAMENTO")
+                continue
+
+        return respostas, debug_info
+
+    def _parse_resposta_objetiva(self, corpo: str, debug_info: dict) -> str:
+        """Extrai resposta de questão objetiva com debug detalhado"""
+        debug_info["alternativas"] = []
+        
+        # Padrão para alternativas (A) texto [X] ou A) [X] texto
+        padrao_alternativas = r"""
+            ([A-E])\)                      # Letra da alternativa
+            \s*
+            (?:\[(.*?)\]\s*)?             # Marcador [X] opcional
+            (.*?)                          # Texto da alternativa
+            (?=\s*[A-E]\)|\s*R:|\Z)       # Lookahead
+        """
+        
+        alternativas = re.finditer(padrao_alternativas, corpo, re.VERBOSE | re.IGNORECASE)
+        resposta = "N/A"
+
+        for alt in alternativas:
+            letra = alt.group(1).upper()
+            marcador = alt.group(2) or ""
+            texto = alt.group(3).strip()
+            
+            debug_info["alternativas"].append({
+                "letra": letra,
+                "marcador": marcador,
+                "texto": texto
+            })
+
+            # Considera marcado se tiver X, ✓, ou texto em negrito
+            if re.search(r"[X✓✔✗]|bold|strong", marcador, re.IGNORECASE):
+                resposta = letra
+
+        return resposta
+
+    def _parse_resposta_dissertativa(self, corpo: str, debug_info: dict) -> str:
+        """Extrai resposta dissertativa com tratamento de multi-linhas"""
+        match = re.search(
+            r"R:\s*(.*?)(?=\(\d+\)|\Z)",
+            corpo,
+            re.DOTALL | re.IGNORECASE
+        )
+        
+        if match:
+            resposta = match.group(1).strip()
+            # Remove múltiplos espaços e quebras de linha extras
+            resposta = ' '.join(resposta.split())
+            return resposta
+        return ""
+
+    def _generate_debug_report(self, resultados: list):
+        """Gera relatório consolidado de debug"""
+        report_file = os.path.join(self.debug_dir, "debug_report.html")
+        
+        with open(report_file, "w", encoding="utf-8") as f:
+            f.write("<html><head><title>Relatório de Debug</title></head><body>")
+            f.write("<h1>Relatório de Processamento de Provas</h1>")
+            
+            for idx, resultado in enumerate(resultados):
+                f.write(f"<h2>Arquivo {idx+1}</h2>")
+                
+                if "erro" in resultado:
+                    f.write(f"<p style='color:red'><strong>ERRO:</strong> {resultado['erro']}</p>")
+                    continue
+                
+                f.write("<h3>Questões</h3><table border='1'><tr><th>Número</th><th>Tipo</th><th>Resposta</th><th>Detalhes</th></tr>")
+                
+                for questao in resultado.get("questoes", []):
+                    f.write("<tr>")
+                    f.write(f"<td>{questao.get('numero', '')}</td>")
+                    f.write(f"<td>{questao.get('tipo', '')}</td>")
+                    f.write(f"<td>{questao.get('resposta_extraida', '')}</td>")
+                    
+                    detalhes = "<ul>"
+                    if questao.get("tipo") == "objetiva":
+                        for alt in questao.get("alternativas", []):
+                            detalhes += f"<li>{alt['letra']}) {alt['texto']} [Marcador: {alt['marcador']}]</li>"
+                    else:
+                        detalhes += f"<li>{questao.get('corpo_original', '')}</li>"
+                    detalhes += "</ul>"
+                    
+                    f.write(f"<td>{detalhes}</td>")
+                    f.write("</tr>")
+                
+                f.write("</table>")
+                
+                if resultado.get("erros"):
+                    f.write("<h3>Erros</h3><ul>")
+                    for erro in resultado["erros"]:
+                        f.write(f"<li style='color:red'>{erro}</li>")
+                    f.write("</ul>")
+            
+            f.write("</body></html>")
+
+    # ... (métodos calcularNota e validarNota permanecem iguais) ...
 
     def calcularNota(self, gabarito: list, estrutura_prova: list):
-        # Calcula a nota de cada aluno, usando o TIPO da questão para decidir a correção.
+        """Calcula a nota de cada aluno baseado no gabarito"""
         print("MODEL: Iniciando cálculo de notas...")
         if not gabarito:
             print("MODEL: Aviso - Gabarito está vazio. Impossível calcular notas.")
@@ -89,45 +250,44 @@ class DadosAlunos:
             for i, resposta_aluno in enumerate(aluno["respostas"]):
                 if i >= len(gabarito) or i >= len(estrutura_prova):
                     continue
-                print(resposta_aluno)
+                
                 questao_atual = estrutura_prova[i]
                 resposta_correta = gabarito[i]
                 tipo_questao = questao_atual.get('tipo')
 
-                # Decide o método de correção com base no tipo da questão
                 if tipo_questao == 'discursiva':
                     pergunta = questao_atual.get('pergunta', '')
                     pontos_questao = questao_atual.get('pontos', 0)
                     
                     if not resposta_aluno or resposta_aluno == "N/A":
-                        aluno['justificativas'][i] = "O aluno não forneceu uma resposta para esta questão."
+                        aluno['justificativas'][i] = "Sem resposta"
                         continue
 
-                    # IA avalia a resposta do aluno usando a resposta do gabarito como ideal
                     avaliacao = ia.avaliar_resposta_aluno(
                         pergunta=pergunta,
-                        gabarito=resposta_correta, # A resposta ideal vem do gabarito gerado
+                        gabarito=resposta_correta,
                         resposta_aluno=resposta_aluno,
                         nota_maxima=pontos_questao
                     )
                     
-                    nota_questao_ia = avaliacao.get('nota', 0)
-                    justificativa_ia = avaliacao.get('justificativa', 'Não foi possível gerar uma justificativa.')
-                    nota_atribuida = min(float(nota_questao_ia), float(pontos_questao))
-                    
+                    nota_atribuida = min(float(avaliacao.get('nota', 0)), float(pontos_questao))
                     nota_final += nota_atribuida
-                    aluno['justificativas'][i] = justificativa_ia
+                    aluno['justificativas'][i] = avaliacao.get('justificativa', '')
 
                 elif tipo_questao == 'multipla_escolha':
-                    # Comparação direta para múltipla escolha
-                    if resposta_aluno == resposta_correta:
+                    if resposta_aluno.upper() == resposta_correta.upper():
                         nota_final += questao_atual.get('pontos', 0)
+                        aluno['justificativas'][i] = "Resposta correta"
+                    else:
+                        aluno['justificativas'][i] = f"Resposta incorreta (Esperado: {resposta_correta})"
             
             aluno['nota'] = round(nota_final, 2)
-        print("\nMODEL: Notas calculadas com sucesso.")
+        
+        print("MODEL: Notas calculadas com sucesso.")
 
     @staticmethod
     def validarNota(novo_valor, valor_max_str):
+        """Valida se uma nota está no formato correto"""
         if novo_valor == "":
             return True
         try:

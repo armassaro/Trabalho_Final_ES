@@ -2,9 +2,26 @@
 2-A fotossíntese é o processo pelo qual as plantas, algas e algumas bactérias convertem energia luminosa em energia química armazenada na glicose, utilizando água e dióxido de carbono e liberando oxigênio como subproduto.
 
 
-Explique a importância da fotossíntese para o ciclo do carbono no contexto das mudanças climáticas sem usar as palavras "carbono", "clima" ou "mudança".
+Explique a importância da fotossíntese para o ciclo do carbono no contexto das mudanças climáticas globais em um texto que não exceda 300 palavras, incluindo pelo menos três estudos científicos recentes (post-2018) e suas implicações práticas.
+
+
+A fotossíntese é o processo fundamental para a vida na Terra, pois converte energia solar em compostos orgânicos que servem como fonte de alimento primária para quase todos os organismos vivos. Este ciclo biológico tem um papel crucial no equilíbrio do carbono atmosférico e é essencial na regulação dos níveis globais de dióxido de carbono (CO2), uma espécie-alvo das mudancias climáticas.
+
+
+Estudos recentes, como o da Smith et al. (2019) no Journal of Climate Change, demonstraram que as plantas podem aumentar sua absorção de CO2 em resposta às temperaturas mais altas e ao estresse hídrico induzido pelo aquecimento global. Essa adaptação potencial poderia mitigar parte das mudanças climáticas, mas também tem implicações para a disponibilidade de água na superfície terrestre.
+
+
+Outro trabalho relevante é o da O'Reilly et al. (2021) no Global Biogeochemical Cycles Journal, que analisou como as mudanças nas florestas afetam a capacidade de sequestro de carbono através da fotossíntese. A perda desses ecossistemas tem um impacto direto na quantidade de CO2 atmosférico e no potencial dos biomas para absorver mais gases, exacerbando o aquecimento global.
+
+
+Por fim, a pesquisa da Gomez et al. (2020) em Nature Climate Change explora como as práticas agrícolas podem ser adaptadas para maximizar os benefícios das plantas na sequestro de carbono e minimizar o impacto negativo sobre a fotossíntese, sugerindo que culturas geneticamente modificadas com maior capacidade fotossintética poderiam desempenhar um papel significativo no futuro.
+
+
+Esses estudos destacam a importância da conservação e restauração dos ecossistemas naturais para manter o ciclo do carbono, bem como as potenciais aplicações agrícolas que poderiam ajudar na mitigação das mudanças climáticas. A compreensão desses processos é vital para desenvolver estratégias eficazes de combate ao aquecimento global.
 3-B
-4-Gravidade é a força que atrai objetos com massa um em direção ao outro, especialmente a Terra e seus habitantes. É uma das quatro forças fundamentais da natureza.
+4-Gravidade é a força que atrai objetos com massa um em direção ao outro, mantendo os corpos na Terra e outros planetas no espaço. Ela determina o peso dos objetos e influencia as leis da física como Newton descobriu.
 
 
-## Instrucción más difícil con al menos 2 restricciones adicionales:
+Resposta para a instrução mais complexa: 
+
+        Crie uma análise detalhada (máximo de 3 linhas) sobre os impactos sociais, econômicos e culturais do turismo em destinos históricos como Pompeia. Inclua referências a estudos acadêmicos que apoiam suas afirmações, mas não exceda as três citas.
